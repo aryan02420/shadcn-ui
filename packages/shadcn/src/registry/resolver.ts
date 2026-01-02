@@ -30,6 +30,7 @@ import {
 } from "@/src/schema"
 import { Config, getTargetStyleFromConfig } from "@/src/utils/get-config"
 import { getProjectTailwindVersionFromConfig } from "@/src/utils/get-project-info"
+import { logger } from "@/src/utils/logger"
 import { buildTailwindThemeColorsFromCssVars } from "@/src/utils/updaters/update-tailwind-config"
 import deepmerge from "deepmerge"
 import { z } from "zod"
@@ -70,13 +71,17 @@ export async function fetchRegistryItems(
   config: Config,
   options: { useCache?: boolean } = {}
 ) {
+  logger.debug(`Fetching ${items.length} registry item(s): ${items.join(", ")}`)
+
   const results = await Promise.all(
     items.map(async (item) => {
       if (isLocalFile(item)) {
+        logger.debug(`Loading local file: ${item}`)
         return fetchRegistryLocal(item)
       }
 
       if (isUrl(item)) {
+        logger.debug(`Fetching from URL: ${item}`)
         const [result] = await fetchRegistry([item], options)
         try {
           return registryItemSchema.parse(result)
@@ -86,6 +91,7 @@ export async function fetchRegistryItems(
       }
 
       if (item.startsWith("@") && config?.registries) {
+        logger.debug(`Resolving registry item: ${item}`)
         const paths = resolveRegistryItemsFromRegistries([item], config)
         const [result] = await fetchRegistry(paths, options)
         try {
@@ -96,6 +102,7 @@ export async function fetchRegistryItems(
       }
 
       const path = `styles/${config?.style ?? "new-york-v4"}/${item}.json`
+      logger.debug(`Fetching from default registry: ${path}`)
       const [result] = await fetchRegistry([path], options)
       try {
         return registryItemSchema.parse(result)

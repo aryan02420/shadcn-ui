@@ -59,6 +59,9 @@ export async function updateFiles(
     isWorkspace: false,
     ...options,
   }
+
+  logger.debug(`Updating ${files.length} file(s)`)
+
   const filesCreatedSpinner = spinner(`Updating files.`, {
     silent: options.silent,
   })?.start()
