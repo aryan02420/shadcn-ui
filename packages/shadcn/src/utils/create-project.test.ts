@@ -29,6 +29,10 @@ vi.mock("@/src/utils/logger", () => ({
     break: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    debug: vi.fn(),
+    verbose: vi.fn(),
+    setVerbose: vi.fn(),
+    isVerbose: vi.fn(() => false),
   },
 }))
 
