@@ -31,6 +31,11 @@ export function handleError(error: unknown) {
       logger.error("\nSuggestion:")
       logger.error(error.suggestion)
     }
+
+    if (logger.isVerbose() && error.stack) {
+      logger.error("\nStack trace:")
+      logger.error(error.stack)
+    }
     logger.break()
     process.exit(1)
   }
@@ -46,6 +51,10 @@ export function handleError(error: unknown) {
 
   if (error instanceof Error) {
     logger.error(error.message)
+    if (logger.isVerbose() && error.stack) {
+      logger.error("\nStack trace:")
+      logger.error(error.stack)
+    }
     logger.break()
     process.exit(1)
   }

@@ -82,6 +82,9 @@ async function addProjectComponents(
     return
   }
 
+  logger.debug(`Adding components: ${components.join(", ")}`)
+  logger.debug(`Project root: ${config.resolvedPaths.cwd}`)
+
   const registrySpinner = spinner(`Checking registry.`, {
     silent: options.silent,
   })?.start()
@@ -91,6 +94,8 @@ async function addProjectComponents(
     registrySpinner?.fail()
     return handleError(new Error("Failed to fetch components from registry."))
   }
+
+  logger.debug(`Resolved ${tree.files?.length || 0} files from registry`)
 
   try {
     validateFilesTarget(tree.files ?? [], config.resolvedPaths.cwd)

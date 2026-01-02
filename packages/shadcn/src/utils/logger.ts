@@ -1,6 +1,14 @@
 import { highlighter } from "@/src/utils/highlighter"
 
+let isVerbose = false
+
 export const logger = {
+  setVerbose(verbose: boolean) {
+    isVerbose = verbose
+  },
+  isVerbose() {
+    return isVerbose
+  },
   error(...args: unknown[]) {
     console.log(highlighter.error(args.join(" ")))
   },
@@ -15,6 +23,16 @@ export const logger = {
   },
   log(...args: unknown[]) {
     console.log(args.join(" "))
+  },
+  debug(...args: unknown[]) {
+    if (isVerbose) {
+      console.log(highlighter.info(`[debug] ${args.join(" ")}`))
+    }
+  },
+  verbose(...args: unknown[]) {
+    if (isVerbose) {
+      console.log(args.join(" "))
+    }
   },
   break() {
     console.log("")
