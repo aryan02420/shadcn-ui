@@ -48,7 +48,10 @@ export async function getRegistry(
 ) {
   const { config, useCache } = options || {}
 
+  logger.debug(`Fetching registry: ${name}`)
+
   if (isUrl(name)) {
+    logger.debug(`Registry is a URL: ${name}`)
     const [result] = await fetchRegistry([name], { useCache })
     try {
       return registrySchema.parse(result)
@@ -75,7 +78,10 @@ export async function getRegistry(
     throw new RegistryNotFoundError(registryName)
   }
 
+  logger.debug(`Resolved registry URL: ${urlAndHeaders.url}`)
+
   if (urlAndHeaders.headers && Object.keys(urlAndHeaders.headers).length > 0) {
+    logger.debug(`Using custom headers for registry request`)
     setRegistryHeaders({
       [urlAndHeaders.url]: urlAndHeaders.headers,
     })

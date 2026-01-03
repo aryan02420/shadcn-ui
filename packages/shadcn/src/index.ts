@@ -11,6 +11,7 @@ import { build as registryBuild } from "@/src/commands/registry/build"
 import { mcp as registryMcp } from "@/src/commands/registry/mcp"
 import { search } from "@/src/commands/search"
 import { view } from "@/src/commands/view"
+import { logger } from "@/src/utils/logger"
 import { Command } from "commander"
 
 import packageJson from "../package.json"
@@ -27,6 +28,14 @@ async function main() {
       "-v, --version",
       "display the version number"
     )
+    .option("--verbose", "enable verbose logging")
+    .hook("preAction", (thisCommand) => {
+      const opts = thisCommand.opts()
+      if (opts.verbose) {
+        logger.setVerbose(true)
+        logger.debug("Verbose logging enabled")
+      }
+    })
 
   program
     .addCommand(init)

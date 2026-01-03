@@ -30,6 +30,7 @@ import {
 } from "@/src/schema"
 import { Config, getTargetStyleFromConfig } from "@/src/utils/get-config"
 import { getProjectTailwindVersionFromConfig } from "@/src/utils/get-project-info"
+import { logger } from "@/src/utils/logger"
 import { buildTailwindThemeColorsFromCssVars } from "@/src/utils/updaters/update-tailwind-config"
 import deepmerge from "deepmerge"
 import { z } from "zod"
@@ -70,38 +71,54 @@ export async function fetchRegistryItems(
   config: Config,
   options: { useCache?: boolean } = {}
 ) {
+  logger.debug(`Fetching ${items.length} registry item(s): ${items.join(", ")}`)
+
   const results = await Promise.all(
     items.map(async (item) => {
+      let result
       if (isLocalFile(item)) {
-        return fetchRegistryLocal(item)
-      }
-
-      if (isUrl(item)) {
-        const [result] = await fetchRegistry([item], options)
+        logger.debug(`Loading local file: ${item}`)
+        result = await fetchRegistryLocal(item)
+      } else if (isUrl(item)) {
+        logger.debug(`Fetching from URL: ${item}`)
+        const [data] = await fetchRegistry([item], options)
         try {
-          return registryItemSchema.parse(result)
+          result = registryItemSchema.parse(data)
         } catch (error) {
+          logger.debug(`Failed to parse item from URL ${item}:`, error)
           throw new RegistryParseError(item, error)
         }
-      }
-
-      if (item.startsWith("@") && config?.registries) {
+      } else if (item.startsWith("@") && config?.registries) {
+        logger.debug(`Resolving registry item: ${item}`)
         const paths = resolveRegistryItemsFromRegistries([item], config)
-        const [result] = await fetchRegistry(paths, options)
+        logger.debug(`Resolved to path(s): ${paths.join(", ")}`)
+        const [data] = await fetchRegistry(paths, options)
         try {
-          return registryItemSchema.parse(result)
+          result = registryItemSchema.parse(data)
         } catch (error) {
+          logger.debug(`Failed to parse item ${item}:`, error)
+          throw new RegistryParseError(item, error)
+        }
+      } else {
+        const path = `styles/${config?.style ?? "new-york-v4"}/${item}.json`
+        logger.debug(`Fetching from default registry: ${path}`)
+        const [data] = await fetchRegistry([path], options)
+        try {
+          result = registryItemSchema.parse(data)
+        } catch (error) {
+          logger.debug(`Failed to parse item from default registry ${item}:`, error)
           throw new RegistryParseError(item, error)
         }
       }
 
-      const path = `styles/${config?.style ?? "new-york-v4"}/${item}.json`
-      const [result] = await fetchRegistry([path], options)
-      try {
-        return registryItemSchema.parse(result)
-      } catch (error) {
-        throw new RegistryParseError(item, error)
+      // Log what was fetched
+      if (result) {
+        logger.debug(
+          `Successfully fetched "${result.name}" (type: ${result.type}, files: ${result.files?.length || 0}, dependencies: ${result.dependencies?.length || 0}, registryDependencies: ${result.registryDependencies?.length || 0})`
+        )
       }
+
+      return result
     })
   )
 
@@ -328,6 +345,10 @@ export async function resolveRegistryTree(
     envVars = deepmerge(envVars, item.envVars ?? {})
   })
 
+  logger.debug(
+    `Before deduplication: ${payload.length} item(s) with total of ${payload.reduce((sum, item) => sum + (item.files?.length || 0), 0)} file(s)`
+  )
+
   // Deduplicate files based on resolved target paths.
   const deduplicatedFiles = await deduplicateFilesByTarget(
     payload.map((item) => item.files ?? []),
@@ -359,6 +380,10 @@ export async function resolveRegistryTree(
   if (Object.keys(envVars).length > 0) {
     parsed.envVars = envVars
   }
+
+  logger.debug(
+    `Resolved tree: ${payload.length} item(s) merged into ${parsed.files?.length || 0} file(s), ${parsed.dependencies?.length || 0} dependencies, ${parsed.devDependencies?.length || 0} devDependencies`
+  )
 
   return parsed
 }

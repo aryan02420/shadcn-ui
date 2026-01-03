@@ -27,10 +27,20 @@ export async function updateDependencies(
     ...options,
   }
 
+  logger.debug(`Updating dependencies:`)
+  if (dependencies?.length) {
+    logger.debug(`  Dependencies: ${dependencies.join(", ")}`)
+  }
+  if (devDependencies?.length) {
+    logger.debug(`  Dev dependencies: ${devDependencies.join(", ")}`)
+  }
+
   const dependenciesSpinner = spinner(`Installing dependencies.`, {
     silent: options.silent,
   })?.start()
   const packageManager = await getUpdateDependenciesPackageManager(config)
+
+  logger.debug(`Using package manager: ${packageManager}`)
 
   // Offer to use --force or --legacy-peer-deps if using React 19 with npm.
   let flag = ""
@@ -58,6 +68,10 @@ export async function updateDependencies(
         flag = confirmation.flag
       }
     }
+  }
+
+  if (flag) {
+    logger.debug(`Using npm flag: --${flag}`)
   }
 
   dependenciesSpinner?.start()

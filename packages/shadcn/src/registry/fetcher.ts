@@ -12,6 +12,7 @@ import {
   RegistryUnauthorizedError,
 } from "@/src/registry/errors"
 import { registryItemSchema } from "@/src/schema"
+import { logger } from "@/src/utils/logger"
 import { HttpsProxyAgent } from "https-proxy-agent"
 import fetch from "node-fetch"
 import { z } from "zod"
@@ -40,8 +41,11 @@ export async function fetchRegistry(
       paths.map(async (path) => {
         const url = resolveRegistryUrl(path)
 
+        logger.debug(`Fetching registry: ${url}`)
+
         // Check cache first if caching is enabled
         if (options.useCache && registryCache.has(url)) {
+          logger.debug(`Using cached response for: ${url}`)
           return registryCache.get(url)
         }
 
@@ -56,6 +60,8 @@ export async function fetchRegistry(
               ...headers,
             },
           })
+
+          logger.debug(`Response status for ${url}: ${response.status}`)
 
           if (!response.ok) {
             let messageFromServer = undefined
@@ -85,6 +91,10 @@ export async function fetchRegistry(
               }
             }
 
+            logger.debug(
+              `Request failed for ${url}: ${response.status} ${messageFromServer || ""}`
+            )
+
             if (response.status === 401) {
               throw new RegistryUnauthorizedError(url, messageFromServer)
             }
@@ -104,7 +114,9 @@ export async function fetchRegistry(
             )
           }
 
-          return response.json()
+          const data = await response.json()
+          logger.debug(`Successfully fetched data from: ${url}`)
+          return data
         })()
 
         if (options.useCache) {
@@ -116,6 +128,7 @@ export async function fetchRegistry(
 
     return results
   } catch (error) {
+    logger.debug(`Fetch error: ${error instanceof Error ? error.message : String(error)}`)
     throw error
   }
 }
